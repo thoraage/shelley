@@ -7,7 +7,7 @@ class GrepSpec extends Specification {
 
   "grep" should {
     "filter out lines" in {
-      ls | grep("arget") | toString must_== "target"
+      ls | grep("arget") | asString must_== "target"
     }
   }
 

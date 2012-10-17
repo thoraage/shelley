@@ -4,47 +4,40 @@ import java.io.File
 
 object Shelley {
 
-  //type Column[T] = List[T]
+  type Generator[O] = Function0[Iterator[O]]
+  type Filter[I] = Function1[I, Option[I]]
+  type Sink[I, O] = Function1[I, O]
 
   val ls = LsCommand(".")
 
-  implicit def toPipe[T](cmd: Command[T]) = new StartPipe(cmd)
-  implicit def toPipe[T](it: Iterator[T]) = new InterPipe(it)
+  def grep[I](pattern: String): Filter[I] = input => pattern.r.findFirstMatchIn(input.toString).map(_ => input)
 
-  implicit def toStringify(f: String => Boolean): File => Boolean =
-    file => f(file.toString)
+  def print: Sink[Any, Unit] = a => println(a)
 
-  def grep(pattern: String): String => Boolean =
-    (s: String) => pattern.r.findFirstMatchIn(s).isDefined
+  def asString: Sink[Any, Unit] = a => a.toString
 
-  def echo(a: Any) {
-    println(a)
-  }
+  implicit def generatorToStartPipe[O](generator: Generator[O]) = new StartPipe[O](generator)
 
-  ls.|(grep("ini")).|(echo _)
-  ls | grep("ini") | echo
+  new StartPipe(ls).|(grep("ini")).|(print)
+  ls | grep("ini") | print
 }
 
-trait Command[T] {
-  def output: Iterator[T]
+import Shelley._
+
+case class LsCommand(path: String) extends Generator[File] {
+  def apply() = new File(path).listFiles().iterator
 }
 
-case class LsCommand(path: String) extends Command[File] {
-  def output = new File(path).listFiles.iterator
+trait OutputPipe[O]
+
+class StartPipe[O](generator: Generator[O]) extends OutputPipe[O] {
+  def |(filter: Filter[O]) = new InterPipe(this, filter)
 }
 
-trait Pipe[T] {
-  def |(f: T => Unit)
+class InterPipe[I](output: OutputPipe[I], filter: Filter[I]) extends OutputPipe[I] {
+  def |[O](sink: Sink[I, O]) = new EndPipe(this, sink)
 }
 
-class StartPipe[T](cmd: Command[T]) {
-  def |(f: T => Unit) {
-    cmd.output.foreach(f)
-  }
-  def |(f: T => Boolean): Pipe[T] = new InterPipe(this)
-}
-
-class InterPipe[T](pipe: Pipe) {
-  def apply(cmd: Command[T]) = new StartPipe(cmd)
-
+class EndPipe[I, O](output: OutputPipe[I], sink: Sink[I, O]) {
+  sys.error("Not implemented")
 }
