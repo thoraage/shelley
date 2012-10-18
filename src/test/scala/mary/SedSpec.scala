@@ -7,7 +7,7 @@ class SedSpec extends Specification {
 
   "sed" should {
     "substitute strings" in {
-      ls() | grep("arget") | sed("\\/", "x") | sed("ar", "y") | asString must_== ".xtyget"
+      ls() | grep("arget") | sed("\\/", "x") | sed("ar", "y") | asString must_== ".xtyget\n"
     }
   }
 

@@ -11,11 +11,11 @@ class FindSpec extends Specification {
     }
 
     "with dir directive, should only list directories" in {
-      findr("src/test/resources").directories | asString must_== "src/test/resources"
+      findr("src/test/resources").directories | asString must_== "src/test/resources\n"
     }
 
     "with file directive, should only list files" in {
-      findr("src/test/resources").files | asString must_== "src/test/resources/testfile.txt"
+      findr("src/test/resources").files | asString must_== "src/test/resources/testfile.txt\n"
     }
   }
 

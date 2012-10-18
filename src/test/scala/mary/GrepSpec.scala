@@ -11,7 +11,7 @@ class GrepSpec extends Specification {
     }
 
     "if inverted, filter non-matching lines" in {
-      ls() | (grep("arget").invert) | asString must not contain "./target"
+      ls() | (grep("arget").invert) | asString must not contain "./target\n"
     }
   }
 

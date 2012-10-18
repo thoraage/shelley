@@ -7,7 +7,7 @@ object shelley {
   trait Filter[I] extends Function1[I, Boolean]
   trait Mapper[-I, O] extends Function1[I, O]
   trait Sink[-I, O] extends Function1[I, O]
-  type Aggregator[I] = Function2[I, I, I]
+  type Aggregator[I] = (I, Function2[I, I, I])
 
   case class sed(pattern: String, replacement: String) extends Mapper[Any, String] {
     val r = pattern.r
@@ -64,9 +64,9 @@ object shelley {
   }
 
   implicit def generatorToStartPipe[O](generator: Generator[O]) = new StartPipe[O](generator)
-  implicit val unitAggregator: Aggregator[Unit] = (_: Unit, _: Unit) => ()
-  implicit val stringAggregator: Aggregator[String] = (s1, s2) => s1 + "\n" + s2
-  implicit val intAggregator: Aggregator[Int] = (i1, i2) => i1 + i2
+  implicit val unitAggregator: Aggregator[Unit] = ((), (_: Unit, _: Unit) => ())
+  implicit val stringAggregator: Aggregator[String] = ("", (s1, s2) => s1 + s2 + "\n")
+  implicit val intAggregator: Aggregator[Int] = (0, (i1, i2) => i1 + i2)
 }
 
 import shelley._
@@ -74,7 +74,7 @@ import shelley._
 trait OutputPipe[O] {
   def iterator: Iterator[O]
   def |[SO](sink: Sink[O, SO])(implicit aggregator: Aggregator[SO]): SO = {
-    iterator.map(sink).reduce(aggregator)
+    iterator.map(sink).foldLeft(aggregator._1)(aggregator._2)
   }
   def |[MO](mapper: Mapper[O, MO]): MapperPipe[O, MO] = new MapperPipe[O, MO](this, mapper)
 }
