@@ -4,7 +4,7 @@ import java.io.File
 
 object shelley {
   type Generator[O] = Function0[Iterator[O]]
-  trait Filter[I] extends Function1[I, Option[I]]
+  trait Filter[I] extends Function1[I, Boolean]
   trait Mapper[-I, O] extends Function1[I, O]
   trait Sink[-I, O] extends Function1[I, O]
   type Aggregator[I] = Function2[I, I, I]
@@ -18,7 +18,6 @@ object shelley {
   }
   case class findr(path: String = ".") extends Generator[File] {
     private var queue = new File(".").listFiles().iterator
-    //def dir
     def apply() = new Iterator[File] {
       override def hasNext = queue.hasNext
       override def next() = {
@@ -32,9 +31,14 @@ object shelley {
   }
   case class ls(path: String = ".") extends Generator[File] {
     def apply() = new File(path).listFiles().iterator
+    /*def verbose = new Generator[(File, Int)] {
+      apply
+    } */
   }
-  def grep(pattern: String) = new Filter[String] {
-    def apply(input: String) = pattern.r.findFirstMatchIn(input).map(_ => input)
+  case class grep(pattern: String, private val inverted: Boolean = false) extends Filter[String] {
+    val regex = pattern.r
+    def apply(input: String) = regex.findFirstIn(input).isDefined ^ inverted
+    def invert = copy(inverted = !inverted)
   }
   def print = new Sink[Any, Unit] {
     def apply(a: Any) { println(a) }
@@ -50,8 +54,6 @@ object shelley {
   implicit val unitAggregator: Aggregator[Unit] = (_: Unit, _: Unit) => ()
   implicit val stringAggregator: Aggregator[String] = (s1, s2) => s1 + "\n" + s2
   implicit val intAggregator: Aggregator[Int] = (i1, i2) => i1 + i2
-
-  new StartPipe[File](ls()).|(asString)
 }
 
 import shelley._
@@ -70,7 +72,7 @@ class StartPipe[O](generator: Generator[O]) extends OutputPipe[O] {
 }
 
 class FilterPipe[I](source: OutputPipe[I], filter: Filter[String]) extends OutputPipe[I] {
-  def iterator = source.iterator.filter(value => filter(value.toString).isDefined)
+  def iterator = source.iterator.filter(value => filter(value.toString))
 }
 
 class MapperPipe[I, O](source: OutputPipe[I], mapper: Mapper[I, O]) extends OutputPipe[O] {
