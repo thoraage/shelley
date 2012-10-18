@@ -16,18 +16,31 @@ object shelley {
       r.replaceAllIn(string, replacement)
     }
   }
-  case class findr(path: String = ".") extends Generator[File] {
-    private var queue = new File(".").listFiles().iterator
+  case class findr(path: String = ".", private val fileType: FileTypes = FileTypes.All) extends Generator[File] {
+    private var queue = Seq(new File(path)).iterator.buffered
+    private def appendSubDirectory(dir: File) {
+      queue = (queue ++ dir.listFiles().iterator).buffered
+    }
+    private def spool() {
+      while (fileType == FileTypes.Dir && queue.hasNext && queue.head.isFile) queue.next()
+      while (fileType == FileTypes.File && queue.hasNext && queue.head.isDirectory) {
+        appendSubDirectory(queue.next())
+      }
+    }
     def apply() = new Iterator[File] {
-      override def hasNext = queue.hasNext
+      override def hasNext = {
+        spool()
+        queue.hasNext
+      }
       override def next() = {
+        spool()
         val file = queue.next()
-        if (file.isDirectory) {
-          queue ++= file.listFiles().iterator
-        }
+        if (file.isDirectory) appendSubDirectory(file)
         file
       }
     }
+    def directories = copy(fileType = FileTypes.Dir)
+    def files = copy(fileType = FileTypes.File)
   }
   case class ls(path: String = ".") extends Generator[File] {
     def apply() = new File(path).listFiles().iterator
