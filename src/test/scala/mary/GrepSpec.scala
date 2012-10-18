@@ -7,11 +7,11 @@ class GrepSpec extends Specification {
 
   "grep" should {
     "filter matching lines" in {
-      ls() | grep("arget") | asString must_== "./target"
+      ls() | grep("arget") | asString must_== "./target\n"
     }
 
     "if inverted, filter non-matching lines" in {
-      ls() | (grep("arget").invert) | asString must not contain "./target\n"
+      ls() | (grep("arget").invert) | asString must not contain "./target"
     }
   }
 
