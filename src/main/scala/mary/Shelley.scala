@@ -31,9 +31,9 @@ object shelley {
   }
   case class ls(path: String = ".") extends Generator[File] {
     def apply() = new File(path).listFiles().iterator
-    /*def verbose = new Generator[(File, Int)] {
-      apply
-    } */
+    def verbose = new Generator[(File, Long)] {
+      def apply() = ls(path)().map((f: File) => (f, f.length()))
+    }
   }
   case class grep(pattern: String, private val inverted: Boolean = false) extends Filter[String] {
     val regex = pattern.r
