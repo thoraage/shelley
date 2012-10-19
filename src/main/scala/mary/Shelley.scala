@@ -3,16 +3,29 @@ package mary
 import java.io.File
 
 object shelley {
+  type Formatter = Any => String
   type Generator[O] = Function0[Iterator[O]]
   trait Filter[-I] extends Function1[I, Boolean]
   trait Mapper[-I, O] extends Function1[I, O]
   trait Sink[-I, O] extends Function1[I, O]
   type Aggregator[I] = (I, Function2[I, I, I])
 
+  implicit def stringify: Formatter = _ match {
+    case n: Array[_] => n.map(stringify).mkString(",")
+    case n: String => n
+    case n => n.toString
+  }
+
+  case class cut(private val delimeter: String = ";") extends Mapper[Any, Array[String]] {
+    def apply(a: Any) = {
+      val string = stringify(a)
+      string.split(delimeter)
+    }
+  }
   case class sed(pattern: String, replacement: String) extends Mapper[Any, String] {
     val r = pattern.r
     def apply(a: Any) = {
-      val string: String = a.toString
+      val string = stringify(a)
       r.replaceAllIn(string, replacement)
     }
   }
@@ -42,22 +55,27 @@ object shelley {
     def directories = copy(fileType = FileTypes.Dir)
     def files = copy(fileType = FileTypes.File)
   }
+
+  case class grep[I](pattern: String, private val inverted: Boolean = false) extends Filter[Any] {
+    val regex = pattern.r
+    def apply(input: Any) = regex.findFirstIn(stringify(input)).isDefined ^ inverted
+    def invert = copy(inverted = !inverted)
+  }
+
+  def echo(string: String) = new Generator[String] {
+    def apply() = string.split("\n").iterator
+  }
   case class ls(path: String = ".") extends Generator[File] {
     def apply() = new File(path).listFiles().iterator
     def verbose = new Generator[(File, Long)] {
       def apply() = ls(path)().map((f: File) => (f, f.length()))
     }
   }
-  case class grep[I](pattern: String, private val inverted: Boolean = false) extends Filter[Any] {
-    val regex = pattern.r
-    def apply(input: Any) = regex.findFirstIn(input.toString).isDefined ^ inverted
-    def invert = copy(inverted = !inverted)
-  }
   def print = new Sink[Any, Unit] {
     def apply(a: Any) { println(a) }
   }
   def asString = new Sink[Any, String] {
-    def apply(a: Any) = a.toString
+    def apply(a: Any) = stringify(a)
   }
   def count = new Sink[Any, Int] {
     def apply(a: Any) = 1
