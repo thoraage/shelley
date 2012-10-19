@@ -16,6 +16,22 @@ object shelley {
     case n => n.toString
   }
 
+  /*object select {
+    def apply[T](indices: Int*): Array[T] = new select(indices.toList)
+  }
+  class select[T](private val indices: List[Int]) extends Mapper[Array[T],Array[T]] {
+    val reverse = indices.distinct.sortWith(_ > _)
+    def apply(as: Array[T]) = {
+      val as1 = new Array(as.size - indices.filter(_ < as.size).size)
+      for (i <- 0 to as.size)
+        if (i <= as1.size)
+          as1(i) = as(i)
+      as1
+    }
+  }*/
+  case class join(delimeter: String = ";")  extends Mapper[Array[_], String] {
+    def apply(a: Array[_]) = a.map(stringify).mkString(delimeter)
+  }
   case class cut(private val delimeter: String = ";") extends Mapper[Any, Array[String]] {
     def apply(a: Any) = {
       val string = stringify(a)
