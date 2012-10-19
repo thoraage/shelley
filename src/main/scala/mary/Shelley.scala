@@ -4,7 +4,7 @@ import java.io.File
 
 object shelley {
   type Generator[O] = Function0[Iterator[O]]
-  trait Filter[I] extends Function1[I, Boolean]
+  trait Filter[-I] extends Function1[I, Boolean]
   trait Mapper[-I, O] extends Function1[I, O]
   trait Sink[-I, O] extends Function1[I, O]
   type Aggregator[I] = (I, Function2[I, I, I])
@@ -48,9 +48,9 @@ object shelley {
       def apply() = ls(path)().map((f: File) => (f, f.length()))
     }
   }
-  case class grep(pattern: String, private val inverted: Boolean = false) extends Filter[String] {
+  case class grep[I](pattern: String, private val inverted: Boolean = false) extends Filter[Any] {
     val regex = pattern.r
-    def apply(input: String) = regex.findFirstIn(input).isDefined ^ inverted
+    def apply(input: Any) = regex.findFirstIn(input.toString).isDefined ^ inverted
     def invert = copy(inverted = !inverted)
   }
   def print = new Sink[Any, Unit] {
@@ -80,12 +80,12 @@ trait OutputPipe[O] {
 }
 
 class StartPipe[O](generator: Generator[O]) extends OutputPipe[O] {
-  def |(filter: Filter[String]): FilterPipe[O] = new FilterPipe[O](this, filter)
+  def |(filter: Filter[O]): FilterPipe[O] = new FilterPipe[O](this, filter)
   def iterator = generator()
 }
 
-class FilterPipe[I](source: OutputPipe[I], filter: Filter[String]) extends OutputPipe[I] {
-  def iterator = source.iterator.filter(value => filter(value.toString))
+class FilterPipe[I](source: OutputPipe[I], filter: Filter[I]) extends OutputPipe[I] {
+  def iterator = source.iterator.filter(value => filter(value))
 }
 
 class MapperPipe[I, O](source: OutputPipe[I], mapper: Mapper[I, O]) extends OutputPipe[O] {
