@@ -10,7 +10,7 @@ object shelley {
   trait Sink[-I, O] extends Function1[I, O]
   type Aggregator[I] = (I, Function2[I, I, I])
 
-  implicit def stringify: Formatter = _ match {
+  def stringify: Formatter = _ match {
     case n: Array[_] => n.map(stringify).mkString(",")
     case n: String => n
     case n => n.toString
@@ -88,7 +88,7 @@ object shelley {
     }
   }
   def print = new Sink[Any, Unit] {
-    def apply(a: Any) { println(a) }
+    def apply(a: Any) { println(stringify(a)) }
   }
   def asString = new Sink[Any, String] {
     def apply(a: Any) = stringify(a)
