@@ -1,6 +1,7 @@
 package mary
 
 import java.io.File
+import io.Source
 
 object shelley {
   type Formatter = Any => String
@@ -78,6 +79,9 @@ object shelley {
     def invert = copy(inverted = !inverted)
   }
 
+  case class cat(file: File) extends Generator[String] {
+    def apply() = Source.fromFile(file).getLines()
+  }
   def echo(string: String) = new Generator[String] {
     def apply() = string.split("\n").iterator
   }
@@ -97,6 +101,7 @@ object shelley {
     def apply(a: Any) = 1
   }
 
+  implicit def stringToFile(s: String) = new File(s)
   implicit def generatorToStartPipe[O](generator: Generator[O]) = new StartPipe[O](generator)
   implicit val unitAggregator: Aggregator[Unit] = ((), (_: Unit, _: Unit) => ())
   implicit val stringAggregator: Aggregator[String] = ("", (s1, s2) => s1 + s2 + "\n")
