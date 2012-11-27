@@ -6,6 +6,7 @@ import io.Source
 object shelley {
   type Formatter = Any => String
   type Generator[O] = Function0[Iterator[O]]
+  trait Spawn[-I, O] extends Function[I, Iterator[O]]
   trait Filter[-I] extends Function1[I, Boolean]
   trait Mapper[-I, O] extends Function1[I, O]
   trait Sink[-I, O] extends Function1[I, O]
@@ -73,6 +74,9 @@ object shelley {
     def files = copy(fileType = FileTypes.File)
   }
 
+  case class each[I, O](generator: I => Generator[O]) extends Spawn[I, O] {
+    def apply(input: I) = generator(input)()
+  }
   case class grep[I](pattern: String, private val inverted: Boolean = false) extends Filter[Any] {
     val regex = pattern.r
     def apply(input: Any) = regex.findFirstIn(stringify(input)).isDefined ^ inverted
@@ -116,6 +120,7 @@ trait OutputPipe[O] {
     iterator.map(sink).foldLeft(aggregator._1)(aggregator._2)
   }
   def |[MO](mapper: Mapper[O, MO]): MapperPipe[O, MO] = new MapperPipe[O, MO](this, mapper)
+  def |[SO](spawn: Spawn[O, SO]): SpawnPipe[O, SO] = new SpawnPipe[O, SO](this, spawn)
 }
 
 class StartPipe[O](generator: Generator[O]) extends OutputPipe[O] {
@@ -129,4 +134,8 @@ class FilterPipe[I](source: OutputPipe[I], filter: Filter[I]) extends OutputPipe
 
 class MapperPipe[I, O](source: OutputPipe[I], mapper: Mapper[I, O]) extends OutputPipe[O] {
   def iterator = source.iterator.map(mapper)
+}
+
+class SpawnPipe[I, O](source: OutputPipe[I], spawn: Spawn[I, O]) extends OutputPipe[O] {
+  def iterator = source.iterator.flatMap(spawn)
 }
