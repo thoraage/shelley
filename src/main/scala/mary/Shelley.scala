@@ -2,6 +2,7 @@ package mary
 
 import java.io.File
 import io.Source
+import java.util.zip.ZipFile
 
 object shelley {
   type Formatter = Any => String
@@ -18,19 +19,9 @@ object shelley {
     case n => n.toString
   }
 
-  /*object select {
-    def apply[T](indices: Int*): Array[T] = new select(indices.toList)
+  case class select[S, T](f: S => T) extends Mapper[S, T] {
+    def apply(s: S) = f(s)
   }
-  class select[T](private val indices: List[Int]) extends Mapper[Array[T],Array[T]] {
-    val reverse = indices.distinct.sortWith(_ > _)
-    def apply(as: Array[T]) = {
-      val as1 = new Array(as.size - indices.filter(_ < as.size).size)
-      for (i <- 0 to as.size)
-        if (i <= as1.size)
-          as1(i) = as(i)
-      as1
-    }
-  }*/
   case class join(delimeter: String = ";")  extends Mapper[Array[_], String] {
     def apply(a: Array[_]) = a.map(stringify).mkString(delimeter)
   }
@@ -83,14 +74,29 @@ object shelley {
     def invert = copy(inverted = !inverted)
   }
 
+  case class unzip(file: File) extends Generator[(String, Long, Long)] {
+    def apply() = sys.error("unzipping not implemented")
+    def list = new Generator[(String, Long, Long)] {
+      import collection.JavaConverters._
+      def apply() = new ZipFile(file).entries.asScala.filter(!_.isDirectory).map(e => (e.getName, e.getSize, e.getTime)).toIterator
+    }
+  }
   case class cat(file: File) extends Generator[String] {
-    def apply() = Source.fromFile(file).getLines()
+    def apply() = Source.fromFile(file).getLines
   }
   def echo(string: String) = new Generator[String] {
     def apply() = string.split("\n").iterator
   }
   case class ls(path: String = ".") extends Generator[File] {
-    def apply() = new File(path).listFiles().iterator
+    def apply() = {
+      val file = new File(path)
+      if (!file.exists)
+        sys.error("File " + path + " not found")
+      else if (file.isFile)
+        List(file).iterator
+      else
+        file.listFiles().iterator
+    }
     def verbose = new Generator[(File, Long)] {
       def apply() = ls(path)().map((f: File) => (f, f.length()))
     }

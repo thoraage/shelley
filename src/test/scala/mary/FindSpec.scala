@@ -7,7 +7,7 @@ class FindSpec extends Specification {
 
   "find" should {
     "list files and directories recursively" in {
-      findr("src/test/resources") | count must_== 2
+      findr("src/test/resources") | count must_== 3
     }
 
     "with dir directive, should only list directories" in {
@@ -15,7 +15,7 @@ class FindSpec extends Specification {
     }
 
     "with file directive, should only list files" in {
-      findr("src/test/resources").files | asString must_== "src/test/resources/testfile.txt\n"
+      findr("src/test/resources").files | asString must_== "src/test/resources/testfile.txt\nsrc/test/resources/testfile.zip\n"
     }
   }
 

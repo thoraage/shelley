@@ -11,8 +11,10 @@ class LsSpec extends Specification {
     }
 
     "with verbose, return list of files and other details" in {
-      ls("src/test/resources").verbose | asString must_== "(src/test/resources/testfile.txt,18)\n"
+      ls("src/test/resources/testfile.txt").verbose | asString must_== "(src/test/resources/testfile.txt,18)\n"
     }
+
+    // TODO should support pattern
   }
 
 }
