@@ -67,6 +67,11 @@ object shelley {
 
   case class each[I, O](generator: I => Generator[O]) extends Spawn[I, O] {
     def apply(input: I) = generator(input)()
+    def withParam = new Spawn[I, (I, O)] {
+      def apply(input: I) = {
+        generator(input)().map(o => (input, o))
+      }
+    }
   }
   case class grep[I](pattern: String, private val inverted: Boolean = false) extends Filter[Any] {
     val regex = pattern.r
